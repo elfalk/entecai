@@ -1,43 +1,51 @@
-const chatEl = document.getElementById('chat');
-const form = document.getElementById('form');
-const input = document.getElementById('input');
+// frontend/app.js
 
-const messages = []; // {role:'user'|'assistant', content:''}
+const chatBox = document.getElementById("chat-box");
+const userInput = document.getElementById("user-input");
+const sendButton = document.getElementById("send-btn");
 
-function append(role, text) {
-  const div = document.createElement('div');
-  div.className = 'msg ' + role;
-  div.textContent = text;
-  chatEl.appendChild(div);
-  chatEl.scrollTop = chatEl.scrollHeight;
+// عرض الرسالة في واجهة الشات
+function addMessage(sender, text) {
+  const msg = document.createElement("div");
+  msg.className = sender;
+  msg.innerText = text;
+  chatBox.appendChild(msg);
+  chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-form.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const text = input.value.trim();
+// إرسال الرسالة
+async function sendMessage() {
+  const text = userInput.value.trim();
   if (!text) return;
-  append('user', text);
-  messages.push({ role: 'user', content: text });
-  input.value = '';
-  append('assistant', '...'); // placeholder
+
+  addMessage("user", text);
+  userInput.value = "";
+
   try {
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ messages })
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        messages: [{ role: "user", content: text }]
+      })
     });
-    const j = await res.json();
-    // استبدل آخر رسالة assistant بالنص الحقيقي
-    const last = chatEl.querySelector('.assistant:last-child');
-    if (j.reply) {
-      last.textContent = j.reply;
-      messages.push({ role: 'assistant', content: j.reply });
+
+    const data = await response.json();
+
+    if (data.reply) {
+      addMessage("bot", data.reply);
     } else {
-      last.textContent = 'خطأ في الاستجابة';
+      addMessage("bot", "⚠️ حصل خطأ في الرد.");
     }
   } catch (err) {
     console.error(err);
-    const last = chatEl.querySelector('.assistant:last-child');
-    last.textContent = 'خطأ في الاتصال';
+    addMessage("bot", "❌ فشل الاتصال بالسيرفر.");
   }
+}
+
+sendButton.addEventListener("click", sendMessage);
+userInput.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") sendMessage();
 });
